@@ -9,6 +9,7 @@ import io.swagger.annotations.ApiResponses;
 import java.util.ArrayList;
 
 import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
@@ -40,36 +41,26 @@ public class PerroController {
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
 	@ApiOperation(value = "Listado de Perros", notes = "Listado de perros existentes en la perrera, limitado a 1.000", response = Perro.class, responseContainer = "List")
-	@ApiResponses(value = {
-			@ApiResponse(code = 200, message = "Todo OK"),
+
+	@ApiResponses(value = { @ApiResponse(code = 200, message = "Todo OK"),
 			@ApiResponse(code = 500, message = "Error inexperado en el servidor") })
-	@ApiParam(name="order", required=false, value="Filtro para ordenar por 'nombre' los perros, posibles valores [asc|desc]")
-	public Response getAll(@QueryParam("order") String order) {
+	public Response getAll(
+			@ApiParam(name = "orderBy", required = false, value = "Filtro para ordenar los perros de forma ascendente o descendente, posibles valores [asc|desc]") @DefaultValue("asc") @QueryParam("orderBy") String orderBy,
+			@ApiParam(name = "campo", required = false, value = "Filtro para ordenar por 'campo' los perros, posibles valores [id|nombre|raza]") @DefaultValue("id")  @QueryParam("campo") String campo) {
 		try {
 			this.s = HibernateUtil.getSession();
 			this.s.beginTransaction();
-			
 			ArrayList<Perro> perros = null;
-
-			//controlar QueryParam
-			if ( order != null ){				
-				if ( order.equals("desc")){
-					perros = (ArrayList<Perro>) this.s.createCriteria(
-							Perro.class).addOrder(Order.desc("nombre")).list();
-				}else if(order.equals("asc") ){
-					perros = (ArrayList<Perro>) this.s.createCriteria(
-							Perro.class).addOrder(Order.asc("nombre")).list();	
-				}else{
-					perros = (ArrayList<Perro>) this.s.createCriteria(
-							Perro.class).list();
-				}					
-			}else{
-				perros = (ArrayList<Perro>) this.s.createCriteria(
-						Perro.class).list();
+			if (orderBy != null) {
+				if ("desc".equals(orderBy)) {
+					perros = (ArrayList<Perro>) this.s.createCriteria(Perro.class).addOrder(Order.desc(campo)).list();
+				} else if ("asc".equals(orderBy)) {
+					perros = (ArrayList<Perro>) this.s.createCriteria(Perro.class).addOrder(Order.asc(campo)).list();
+				} else {
+					perros = (ArrayList<Perro>) this.s.createCriteria(Perro.class).list();
+				}
 			}
-			
-			
-			
+
 			this.s.beginTransaction().commit();
 			this.s.close();
 
@@ -78,7 +69,6 @@ public class PerroController {
 			return Response.serverError().build();
 		}
 	}
-
 	@GET
 	@Path("/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
